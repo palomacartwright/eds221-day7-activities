@@ -1,0 +1,82 @@
+---
+title: "Bird Joins"
+author: "Paloma Cartwright"
+date: "17/08/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(tidyverse)
+library(lubridate)
+```
+
+# Task 1
+
+```{r}
+birds <- read_csv(here::here("data", "52_pp52_birds_1.csv"))
+sites <- read_csv(here::here("data", "52_pp52_sites_1.csv"))
+surveys <- read_csv(here::here("data", "52_pp52_surveys_1.csv"))
+taxalist <- read_csv(here::here("data", "52_pp52_taxalist_1.csv"))
+
+
+birds_subset <- birds %>% 
+  filter(species_id %in% c("BHCO", "RWBL"),
+         site_id %in% c("LI-W", "NU-C"))
+
+
+```
+
+## Joins on Birds
+
+#### Left Join Practice
+
+```{r}
+
+birds_left <- left_join(birds_subset, sites, by = "site_id") %>% 
+  left_join(y = taxalist, by = "species_id") %>% 
+  select(-point_location, -park_acreage, -park_district)
+  
+
+```
+
+#### Full Join Practice
+
+```{r}
+birds_full <- full_join(birds_subset, sites, by = "site_id")
+```
+
+#### Inner Join Practice
+
+```{r}
+birds_inner <- inner_join(birds_subset, taxalist, by = "species_id")
+```
+
+# Task 2
+
+## Wrangling the Data
+
+```{r}
+birds <- birds %>% 
+  rename(birds_obs_notes = notes)
+
+birds_wrangle <- full_join(birds, taxalist, by = "species_id") %>% 
+  full_join(y = sites, by = "site_id") %>% 
+  full_join(y = surveys, by = "survey_id") %>% 
+  select(survey_date, common_name, park_name, bird_count) %>% 
+  mutate(survey_month = as.factor(month(survey_date))) %>% 
+  relocate(survey_month, .after = survey_date) 
+
+birds_wrangle_total <- birds_wrangle %>% 
+  drop_na(park_name, survey_month) %>% 
+  group_by(park_name, survey_month) %>% 
+  summarize(total = n()) %>% 
+  filter(park_name %in% c("Lindo", "Orme", "Palomino", "Sonrisa"))
+
+ggplot(birds_wrangle_total, aes(x = survey_month, y = total)) + 
+  geom_point() + aes(color = park_name) 
+```
+
+
+
